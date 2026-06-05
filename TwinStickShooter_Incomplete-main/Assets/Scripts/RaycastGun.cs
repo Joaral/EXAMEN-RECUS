@@ -5,21 +5,68 @@ using UnityEngine;
 public class RaycastGun : MonoBehaviour
 {
     public LineRenderer line;
-    public float lineFadeSpeed;
-    public LayerMask mask;
+    public float lineFadeSpeed = 5f;
+
+    public LayerMask objectMask;
+    public LayerMask enemyMask;
+
     public float knockbackForce = 10;
+    public float shootDistance = 500f;
     void Update()
     {
-        line.startColor = new Color(line.startColor.r, line.startColor.g, line.startColor.b, line.startColor.a - Time.deltaTime * lineFadeSpeed);
-        line.endColor = new Color(line.endColor.r, line.endColor.g, line.endColor.b, line.endColor.a - Time.deltaTime * lineFadeSpeed);
+        FadeLine();
 
         if (Input.GetButtonDown("Fire1"))
         {
-            line.startColor = new Color(line.startColor.r, line.startColor.g, line.startColor.b, 1);
-            line.endColor = new Color(line.endColor.r, line.endColor.g, line.endColor.b, 1);
+            Shoot();
+        }
+    }
 
-            line.SetPosition(0, transform.position);
-            line.SetPosition(1, transform.position + transform.forward * 1000);
+    void FadeLine()
+    {
+        Color start = line.startColor;
+        Color end = line.endColor;
+
+        start.a -= Time.deltaTime * lineFadeSpeed;
+        end.a -= Time.deltaTime * lineFadeSpeed;
+
+        line.startColor = start;
+        line.endColor = end;
+    }
+
+    void Shoot()
+    {
+        line.startColor = new Color(1, 1, 1, 1);
+        line.endColor = new Color(1, 1, 1, 1);
+
+        Vector3 startPos = transform.position;
+        Vector3 direction = transform.forward;
+
+        line.SetPosition(0, startPos);
+        line.SetPosition(1, startPos + direction * shootDistance);
+
+        RaycastHit hit;
+
+
+        if (Physics.Raycast(startPos, direction, out hit, shootDistance, enemyMask))
+        {
+            EnemyController enemy = hit.collider.GetComponent<EnemyController>();
+
+            if (enemy != null)
+            {
+                enemy.Kill();
+            }
+        }
+
+
+        if (Physics.Raycast(startPos, direction, out hit, shootDistance, objectMask))
+        {
+            Rigidbody rb = hit.rigidbody;
+
+            if (rb != null)
+            {
+                rb.AddForceAtPosition(direction * knockbackForce, hit.point, ForceMode.Impulse);
+            }
         }
     }
 }
